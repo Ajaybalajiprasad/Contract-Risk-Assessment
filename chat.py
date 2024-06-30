@@ -126,7 +126,7 @@ if uploaded_file is not None:
     st.success("PDF processed successfully")
 
     user_question = st.text_input("Ask a question about the document:")
-
+    #Result
     if st.button("Submit"):
         response = process_prompt(user_question)
         st.write("### Question:")

@@ -89,7 +89,7 @@ def process_prompt(prompt):
     # Return the structured response
     return {
         "Question": prompt,
-        "Reference clause": generate_reference_clause(extraction),
+        "Reference": generate_reference_clause(extraction),
         "Extraction": extraction,
         "Summary": summary
     }

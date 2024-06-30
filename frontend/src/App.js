@@ -78,22 +78,29 @@ const App = () => {
       alert('Please select a PDF file first');
       return;
     }
-
+  
     const formData = new FormData();
     formData.append('file', file);
-
+  
     try {
       const response = await axios.post('http://localhost:8000/process-document', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      setChatMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: response.data.botResponse }]);
+  
+      const botResponse = response.data.botResponse;
+  
+      setChatMessages((prevMessages) => [
+        ...prevMessages,
+        { sender: 'bot', text: botResponse },
+      ]);
     } catch (error) {
       console.error('Error uploading file:', error);
       alert('Error uploading file');
     }
   };
+  
 
   const handleSendMessage = async () => {
     if (!userMessage.trim()) {
@@ -111,10 +118,11 @@ const App = () => {
           },
         }
       );
+      const { Reference, Extraction, Summary } = response.data.botResponse;
       setChatMessages((prevMessages) => [
         ...prevMessages,
         { sender: 'user', text: userMessage },
-        { sender: 'bot', text: response.data.botResponse },
+        { sender: 'bot', reference: Reference, extraction: Extraction, summary: Summary },
       ]);
       setUserMessage('');
     } catch (error) {
@@ -128,7 +136,6 @@ const App = () => {
       <div className="w-full h-full bg-white rounded-lg shadow-lg p-6 flex flex-col">
         <header className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gray-700">PDF Chatbot</h1>
-          {/* <Avatar src="/placeholder-user.jpg" alt="PDF Chatbot" fallback="CB" /> */}
         </header>
         <div className="flex items-center mb-6">
           <input
@@ -159,7 +166,32 @@ const App = () => {
                 } max-w-[60%]`}
               >
                 <strong>{message.sender === 'user' ? 'You' : 'Bot'}: </strong>
-                <span>{message.text}</span>
+                <div>
+                  {message.text && <p>{message.text}</p>}
+                  {message.res && (
+                    <>
+                    <p>{message.res}</p>
+                    </>
+                  )}
+                  {message.reference && (
+                    <>
+                      <p><strong>Reference:</strong> {message.reference}</p>
+                      <br />
+                    </>
+                  )}
+                  {message.extraction && (
+                    <>
+                      <p><strong>Extraction:</strong> {message.extraction}</p>
+                      <br />
+                    </>
+                  )}
+                  {message.summary && (
+                    <>
+                      <p><strong>Summary:</strong> {message.summary}</p>
+                      <br />
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))}

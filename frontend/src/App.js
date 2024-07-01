@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import 'tailwindcss/tailwind.css';
 
@@ -38,6 +38,26 @@ const SendIcon = (props) => (
     <line x1="22" y1="2" x2="11" y2="13" />
     <polygon points="22 2 15 22 11 13 2 9 22 2" />
   </svg>
+);
+
+const MicIcon = (props) => (
+  <svg
+  {...props}
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+>
+  <path d="M12 1C10.895 1 10 1.895 10 3V12C10 13.105 10.895 14 12 14C13.105 14 14 13.105 14 12V3C14 1.895 13.105 1 12 1Z" />
+  <path d="M19 10V11C19 15.418 15.418 19 11 19C6.582 19 3 15.418 3 11V10" />
+  <path d="M12 19V23" />
+  <path d="M8 23H16" />
+</svg>
 );
 
 const Avatar = ({ src, alt, fallback }) => (
@@ -95,6 +115,30 @@ const App = () => {
   const [userMessage, setUserMessage] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [botTyping, setBotTyping] = useState(false);
+  const [recognition, setRecognition] = useState(null);
+
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window) {
+      const speechRecognition = new window.webkitSpeechRecognition();
+      speechRecognition.continuous = false;
+      speechRecognition.interimResults = false;
+      speechRecognition.lang = 'en-US';
+
+      speechRecognition.onresult = (event) => {
+        const speechToText = event.results[0][0].transcript;
+        setUserMessage(speechToText);
+        handleSendMessage(speechToText);
+      };
+
+      speechRecognition.onerror = (event) => {
+        console.error('Speech recognition error', event);
+      };
+
+      setRecognition(speechRecognition);
+    } else {
+      alert('Speech recognition not supported in this browser');
+    }
+  }, []);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -132,8 +176,9 @@ const App = () => {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!userMessage.trim()) {
+  const handleSendMessage = async (message) => {
+    const finalMessage = message || userMessage;
+    if (!finalMessage.trim()) {
       alert('Please enter a message');
       return;
     }
@@ -143,7 +188,7 @@ const App = () => {
     try {
       const response = await axios.post(
         'http://localhost:8000/process-message',
-        new URLSearchParams({ userMessage }),
+        new URLSearchParams({ userMessage: finalMessage }),
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -153,7 +198,7 @@ const App = () => {
       const { Reference, Extraction, Summary } = response.data.botResponse;
       setChatMessages((prevMessages) => [
         ...prevMessages,
-        { sender: 'user', text: userMessage },
+        { sender: 'user', text: finalMessage },
         { sender: 'bot', reference: Reference, extraction: Extraction, summary: Summary },
       ]);
       setUserMessage('');
@@ -169,6 +214,12 @@ const App = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const startListening = () => {
+    if (recognition) {
+      recognition.start();
     }
   };
 
@@ -233,19 +284,31 @@ const App = () => {
           ))}
           {botTyping && <LoadingIndicator />}
         </div>
-        <div className="flex items-center">
-          <Textarea
-            value={userMessage}
-            onChange={(e) => setUserMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask a question about the PDF"
-            className="flex-grow"
-          />
-          <Button onClick={handleSendMessage} className="ml-2">
-            Send
-            <SendIcon className="w-5 h-5 ml-2" />
-          </Button>
-        </div>
+          <div className="flex items-center relative shadow-lg rounded-lg">
+            <textarea
+              value={userMessage}
+              onChange={(e) => setUserMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask a question about the PDF"
+              className="flex-grow p-4 rounded-lg border-2 border-gray-300 focus:border-gray-600 outline-none transition duration-200 ease-in-out"
+              style={{ paddingRight: '5rem' }}
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+              <button
+                onClick={handleSendMessage}
+                className="ml-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-full inline-flex items-center"
+              >
+                Send
+                <SendIcon className="w-5 h-5 ml-2" />
+              </button>
+              <button
+                onClick={startListening}
+                className="ml-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-full inline-flex items-center"
+              >
+                <MicIcon className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
       </div>
     </div>
   );

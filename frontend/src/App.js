@@ -42,22 +42,22 @@ const SendIcon = (props) => (
 
 const MicIcon = (props) => (
   <svg
-  {...props}
-  xmlns="http://www.w3.org/2000/svg"
-  width="24"
-  height="24"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  strokeWidth="2"
-  strokeLinecap="round"
-  strokeLinejoin="round"
->
-  <path d="M12 1C10.895 1 10 1.895 10 3V12C10 13.105 10.895 14 12 14C13.105 14 14 13.105 14 12V3C14 1.895 13.105 1 12 1Z" />
-  <path d="M19 10V11C19 15.418 15.418 19 11 19C6.582 19 3 15.418 3 11V10" />
-  <path d="M12 19V23" />
-  <path d="M8 23H16" />
-</svg>
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 1C10.895 1 10 1.895 10 3V12C10 13.105 10.895 14 12 14C13.105 14 14 13.105 14 12V3C14 1.895 13.105 1 12 1Z" />
+    <path d="M19 10V11C19 15.418 15.418 19 11 19C6.582 19 3 15.418 3 11V10" />
+    <path d="M12 19V23" />
+    <path d="M8 23H16" />
+  </svg>
 );
 
 const Avatar = ({ src, alt, fallback }) => (
@@ -116,6 +116,7 @@ const App = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [botTyping, setBotTyping] = useState(false);
   const [recognition, setRecognition] = useState(null);
+  const [listening, setListening] = useState(false);
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window) {
@@ -123,6 +124,14 @@ const App = () => {
       speechRecognition.continuous = false;
       speechRecognition.interimResults = false;
       speechRecognition.lang = 'en-US';
+
+      speechRecognition.onstart = () => {
+        setListening(true);
+      };
+
+      speechRecognition.onend = () => {
+        setListening(false);
+      };
 
       speechRecognition.onresult = (event) => {
         const speechToText = event.results[0][0].transcript;
@@ -204,7 +213,7 @@ const App = () => {
       setUserMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Error sending message');
+      alert('Upload pdf file first');
     } finally {
       setBotTyping(false);
     }
@@ -284,31 +293,33 @@ const App = () => {
           ))}
           {botTyping && <LoadingIndicator />}
         </div>
-          <div className="flex items-center relative shadow-lg rounded-lg">
-            <textarea
-              value={userMessage}
-              onChange={(e) => setUserMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask a question about the PDF"
-              className="flex-grow p-4 rounded-lg border-2 border-gray-300 focus:border-gray-600 outline-none transition duration-200 ease-in-out"
-              style={{ paddingRight: '5rem' }}
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-              <button
-                onClick={handleSendMessage}
-                className="ml-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-full inline-flex items-center"
-              >
-                Send
-                <SendIcon className="w-5 h-5 ml-2" />
-              </button>
-              <button
-                onClick={startListening}
-                className="ml-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-full inline-flex items-center"
-              >
-                <MicIcon className="w-5 h-5" />
-              </button>
-            </div>
+        <div className="flex items-center relative shadow-lg rounded-lg">
+          <textarea
+            value={userMessage}
+            onChange={(e) => setUserMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask a question about the PDF"
+            className="flex-grow p-4 rounded-lg border-2 border-gray-300 focus:border-gray-600 outline-none transition duration-200 ease-in-out"
+            style={{ paddingRight: '5rem' }}
+          />
+          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+            <button
+              onClick={handleSendMessage}
+              className="ml-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-full inline-flex items-center"
+            >
+              Send
+              <SendIcon className="w-5 h-5 ml-2" />
+            </button>
+            <button
+              onClick={startListening}
+              className={`ml-2 text-white font-bold py-2 px-4 rounded-full inline-flex items-center ${
+                listening ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-900 hover:bg-gray-700'
+              }`}
+            >
+              <MicIcon className="w-5 h-5" />
+            </button>
           </div>
+        </div>
       </div>
     </div>
   );

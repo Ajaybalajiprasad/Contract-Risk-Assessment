@@ -33,7 +33,7 @@ def init_llm():
         repo_id=model_id,
         task="text-generation",  # Specify the task explicitly
         max_length=2000,         # Increase max_length for longer responses
-        temperature=0.7,         # Adjust temperature for more detailed responses
+        temperature=0.4,         # Adjust temperature for more detailed responses
         top_p=0.9,
         add_to_git_credential=True
                      # Adjust top_p for more vared responses
@@ -49,6 +49,8 @@ def process_document(document_path):
     # Load the document
     loader = PyPDFLoader(document_path)
     documents = loader.load()
+    print(documents)
+    print(type(documents))
 
     # Split the document into chunks
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=64)

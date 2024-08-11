@@ -1,114 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import 'tailwindcss/tailwind.css';
-
-// SVG Icons
-const UploadIcon = (props) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <polyline points="17 8 12 3 7 8" />
-    <line x1="12" x2="12" y1="3" y2="15" />
-  </svg>
-);
-
-const SendIcon = (props) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="22" y1="2" x2="11" y2="13" />
-    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-  </svg>
-);
-
-const MicIcon = (props) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 1C10.895 1 10 1.895 10 3V12C10 13.105 10.895 14 12 14C13.105 14 14 13.105 14 12V3C14 1.895 13.105 1 12 1Z" />
-    <path d="M19 10V11C19 15.418 15.418 19 11 19C6.582 19 3 15.418 3 11V10" />
-    <path d="M12 19V23" />
-    <path d="M8 23H16" />
-  </svg>
-);
-
-const Avatar = ({ src, alt, fallback }) => (
-  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center">
-    {src ? <img src={src} alt={alt} className="w-full h-full object-cover" /> : fallback}
-  </div>
-);
-
-const Button = ({ children, onClick, className }) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white bg-gray-800 hover:bg-gray-900 transition duration-200 focus:outline-none ${className}`}
-  >
-    {children}
-  </button>
-);
-
-const Textarea = ({ value, onChange, onKeyDown, placeholder, className }) => (
-  <textarea
-    value={value}
-    onChange={onChange}
-    onKeyDown={onKeyDown}
-    placeholder={placeholder}
-    className={`w-full p-3 border border-gray-300 rounded-lg resize-none ${className}`}
-  />
-);
-
-const LoadingIndicator = () => (
-  <div className="flex items-center justify-center p-3">
-    <svg
-      className="animate-spin h-5 w-5 text-gray-800"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      ></circle>
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      ></path>
-    </svg>
-  </div>
-);
+import { UploadIcon, SendIcon, MicIcon, Avatar, Button, LoadingIndicator } from './ui/SvgIcons';
+import ReactMarkdown from 'react-markdown';
 
 const App = () => {
   const [file, setFile] = useState(null);
@@ -125,13 +19,9 @@ const App = () => {
       speechRecognition.interimResults = false;
       speechRecognition.lang = 'en-US';
 
-      speechRecognition.onstart = () => {
-        setListening(true);
-      };
+      speechRecognition.onstart = () => setListening(true);
 
-      speechRecognition.onend = () => {
-        setListening(false);
-      };
+      speechRecognition.onend = () => setListening(false);
 
       speechRecognition.onresult = (event) => {
         const speechToText = event.results[0][0].transcript;
@@ -141,6 +31,7 @@ const App = () => {
 
       speechRecognition.onerror = (event) => {
         console.error('Speech recognition error', event);
+        alert('Speech recognition error occurred. Please try again.');
       };
 
       setRecognition(speechRecognition);
@@ -153,7 +44,7 @@ const App = () => {
     setFile(e.target.files[0]);
   };
 
-  const handleUpload = async () => {
+  const handleUpload = useCallback(async () => {
     if (!file) {
       alert('Please select a PDF file first');
       return;
@@ -179,14 +70,14 @@ const App = () => {
       ]);
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Error uploading file');
+      alert('Error uploading file. Please try again.');
     } finally {
       setBotTyping(false);
     }
-  };
+  }, [file]);
 
-  const handleSendMessage = async (message) => {
-    const finalMessage = message || userMessage;
+  const handleSendMessage = useCallback(async (message) => {
+    const finalMessage = String(message || userMessage);
     if (!finalMessage.trim()) {
       alert('Please enter a message');
       return;
@@ -213,11 +104,11 @@ const App = () => {
       setUserMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Upload pdf file first');
+      alert('Failed to send message. Make sure a PDF is uploaded first.');
     } finally {
       setBotTyping(false);
     }
-  };
+  }, [userMessage]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -264,26 +155,27 @@ const App = () => {
               <div
                 className={`ml-3 mr-3 p-3 rounded-lg ${
                   message.sender === 'user' ? 'bg-blue-200' : 'bg-gray-200'
-                } max-w-[60%]`}
+                } max-w-[60%] overflow-hidden`}
               >
                 <strong>{message.sender === 'user' ? 'You' : 'Bot'}: </strong>
-                <div>
+                <div className="whitespace-pre-wrap break-words">
                   {message.text && <p>{message.text}</p>}
                   {message.reference && (
                     <>
-                      <p><strong>Reference:</strong> {message.reference}</p>
+                      <p><strong>Reference:</strong> <ReactMarkdown>{message.reference}</ReactMarkdown></p>
                       <br />
                     </>
                   )}
                   {message.extraction && (
                     <>
-                      <p><strong>Extraction:</strong> {message.extraction}</p>
+                      <p><strong>Extraction:</strong></p>
+                      <ReactMarkdown className="whitespace-pre-wrap break-words">{message.extraction}</ReactMarkdown>
                       <br />
                     </>
                   )}
                   {message.summary && (
                     <>
-                      <p><strong>Summary:</strong> {message.summary}</p>
+                      <p><strong>Summary:</strong> <ReactMarkdown>{message.summary}</ReactMarkdown></p>
                       <br />
                     </>
                   )}

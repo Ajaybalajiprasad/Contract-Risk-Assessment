@@ -1,6 +1,8 @@
 import logging
 import os
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+import time
+import random
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,9 +68,12 @@ async def process_document_route(file: UploadFile = File(...)):
 
         worker.process_document(file_path)  # Process the document using the worker module
 
+        estimated_time = random.randint(5, 15)  # Simulate document processing time
+        time.sleep(estimated_time)
+
         return JSONResponse(content={
-            "botResponse": "Thank you for providing your PDF document. I have analyzed it, so now you can ask me any "
-                           "questions regarding it!"
+            "botResponse": "Thank you for providing your PDF document. I have analyzed it, so now you can ask me any questions regarding it!",
+            "estimated_time": estimated_time
         }, status_code=200)
     except Exception as e:
         logger.error(f"Error saving or processing document: {e}")
@@ -77,4 +82,4 @@ async def process_document_route(file: UploadFile = File(...)):
 # Run the FastAPI app using Uvicorn
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug")
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug", reload=True)

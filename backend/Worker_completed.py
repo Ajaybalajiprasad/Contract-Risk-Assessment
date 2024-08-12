@@ -1,8 +1,6 @@
 import os
 import torch
 from dotenv import load_dotenv
-import pdfplumber
-from langchain_core.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
@@ -10,10 +8,13 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.llms import HuggingFaceEndpoint
 
+# Load environment variables
 load_dotenv()
 
+# Set the device (GPU if available, else CPU)
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
+# Global variables
 conversation_retrieval_chain = None
 chat_history = []
 llm_hub = None
@@ -22,34 +23,52 @@ embeddings = None
 def init_llm():
     global llm_hub, embeddings
 
-    os.environ["HUGGINGFACEHUB_API_TOKEN"] = os.getenv('HUGGING_FACE_TOKEN')
+    # Set the Hugging Face API token
+    os.environ["HUGGINGFACEHUB_TOKEN"] = os.getenv('HUGGING_FACE_TOKEN')
+
+    # Initialize the language model
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
-    
     llm_hub = HuggingFaceEndpoint(
         repo_id=model_id,
         task="text-generation",
-        max_length=2000,         
+        max_length=2000,
         temperature=0.4,
         top_p=0.9,
-        add_to_git_credential=True
     )
 
+    # Initialize the embeddings model
     embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 def process_document(document_path):
     global conversation_retrieval_chain
 
-    loader = PyPDFLoader(document_path)
-    documents = loader.load()
+    persist_directory = "./contract"
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=64)
-    texts = text_splitter.split_documents(documents)
+    # Check if the persistent directory already exists
+    if os.path.exists(persist_directory):
+        # Load the existing Chroma vector store from the directory
+        db = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
+        print("Loaded existing Chroma vector store from the directory.")
+    else:
+        # Process the documents and create a new vector store
+        loader = PyPDFLoader(document_path)
+        documents = loader.load()
 
-    persist_directory = "./chroma"
-    db = Chroma.from_documents(texts, persist_directory=persist_directory,embeddings)
-    db.persist()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=64)
+        texts = text_splitter.split_documents(documents)
+
+        db = Chroma.from_documents(
+            documents=texts,
+            embedding=embeddings,
+            persist_directory=persist_directory
+        )
+        db.persist()
+        print("Created and persisted new Chroma vector store.")
+
+    # Create the retriever from the Chroma vector store
     retriever = db.as_retriever(search_type="similarity", search_kwargs={'k': 2})
 
+    # Initialize the conversation retrieval chain
     conversation_retrieval_chain = RetrievalQA.from_chain_type(
         llm=llm_hub,
         chain_type="stuff",
@@ -82,25 +101,25 @@ def process_prompt(prompt):
     }
 
 def generate_summary(extraction, prompt):
-    summary_prompt = f"Based on the following extraction and the question, provide a detailed summary if the question is available in the pdf else tell:\n\nExtraction:\n{extraction}\n\nQuestion:\n{prompt}\n\nSummary:"
+    summary_prompt = (
+        f"Based on the following extraction and the question, provide a detailed summary if the question is available in the pdf else tell:\n\n"
+        f"Extraction:\n{extraction}\n\n"
+        f"Question:\n{prompt}\n\n"
+        f"Summary:"
+    )
     response = llm_hub.generate(prompts=[summary_prompt])
-    
-    if isinstance(response, type(response)):
-        generated_text = response.generations[0][0].text
-    else:
-        raise ValueError("Unexpected response type from llm_hub.generate()")
-    print(generated_text.strip())
+
+    generated_text = response.generations[0][0].text if response and response.generations else "Summary not available."
     return generated_text.strip()
 
-def generate_reference_clause(document_path, extraction):
-    with pdfplumber.open(document_path) as pdf:
-        for page in pdf.pages:
-            text = page.extract_text()
-            if text and extraction in text:
-                words = page.extract_words()
-                for word in words:
-                    if 'bold' in word['fontname'].lower():
-                        return word['text']
-    return extraction.split('\n')[0]
+def generate_reference_clause(extraction):
+    return extraction.split('\n')[0]  
 
+# Initialize the language model and embeddings
 init_llm()
+
+# Uncomment the following lines to test the code
+# process_document('./GCC_July_2020.pdf')
+# prompt = "What is the role of the GCC in the global economy?"
+# result = process_prompt(prompt)
+# print(result)

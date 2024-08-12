@@ -1,8 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import 'tailwindcss/tailwind.css';
-import { UploadIcon, SendIcon, MicIcon, Avatar, Button, LoadingIndicator } from './ui/SvgIcons';
+import { UploadIcon, SendIcon, MicIcon, Avatar, Button } from './ui/SvgIcons';
 import ReactMarkdown from 'react-markdown';
+
+const Loader = () => (
+  <div className="flex justify-center items-center space-x-2 mt-2">
+    <div className="w-2.5 h-2.5 bg-gray-600 rounded-full animate-pulse"></div>
+    <div className="w-2.5 h-2.5 bg-gray-600 rounded-full animate-pulse delay-200"></div>
+    <div className="w-2.5 h-2.5 bg-gray-600 rounded-full animate-pulse delay-400"></div>
+  </div>
+);
 
 const App = () => {
   const [file, setFile] = useState(null);
@@ -12,6 +20,8 @@ const App = () => {
   const [recognition, setRecognition] = useState(null);
   const [listening, setListening] = useState(false);
 
+  const chatContainerRef = useRef(null);
+
   useEffect(() => {
     if ('webkitSpeechRecognition' in window) {
       const speechRecognition = new window.webkitSpeechRecognition();
@@ -20,15 +30,12 @@ const App = () => {
       speechRecognition.lang = 'en-US';
 
       speechRecognition.onstart = () => setListening(true);
-
       speechRecognition.onend = () => setListening(false);
-
       speechRecognition.onresult = (event) => {
         const speechToText = event.results[0][0].transcript;
         setUserMessage(speechToText);
         handleSendMessage(speechToText);
       };
-
       speechRecognition.onerror = (event) => {
         console.error('Speech recognition error', event);
         alert('Speech recognition error occurred. Please try again.');
@@ -40,9 +47,13 @@ const App = () => {
     }
   }, []);
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages, botTyping]);
+
+  const handleFileChange = (e) => setFile(e.target.files[0]);
 
   const handleUpload = useCallback(async () => {
     if (!file) {
@@ -141,11 +152,16 @@ const App = () => {
             <UploadIcon className="w-5 h-5 ml-2" />
           </Button>
         </div>
-        <div className="flex-grow overflow-y-auto mb-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
+        <div
+          ref={chatContainerRef} // Attach ref to the chat container
+          className="flex-grow overflow-y-auto mb-4 p-4 border border-gray-300 rounded-lg bg-gray-50"
+        >
           {chatMessages.map((message, index) => (
             <div
               key={index}
-              className={`flex items-start ${message.sender === 'user' ? 'flex-row-reverse' : ''} mb-4`}
+              className={`flex items-start transition-opacity duration-300 ${
+                message.sender === 'user' ? 'flex-row-reverse' : ''
+              } mb-4`}
             >
               <Avatar
                 src={message.sender === 'user' ? '/user-avatar.jpg' : '/bot-avatar.jpg'}
@@ -154,38 +170,35 @@ const App = () => {
               />
               <div
                 className={`ml-3 mr-3 p-3 rounded-lg ${
-                  message.sender === 'user' ? 'bg-blue-200' : 'bg-gray-200'
-                } max-w-[60%] overflow-hidden`}
+                  message.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+                } max-w-[60%] break-words shadow-md`}
               >
                 <strong>{message.sender === 'user' ? 'You' : 'Bot'}: </strong>
-                <div className="whitespace-pre-wrap break-words">
+                <div className="whitespace-pre-wrap">
                   {message.text && <p>{message.text}</p>}
                   {message.reference && (
                     <>
-                      <p><strong>Reference:</strong> <ReactMarkdown>{message.reference}</ReactMarkdown></p>
-                      <br />
+                      <p className="mt-2"><strong>Reference:</strong> <ReactMarkdown>{message.reference}</ReactMarkdown></p>
                     </>
                   )}
                   {message.extraction && (
                     <>
-                      <p><strong>Extraction:</strong></p>
-                      <ReactMarkdown className="whitespace-pre-wrap break-words">{message.extraction}</ReactMarkdown>
-                      <br />
+                      <p className="mt-2"><strong>Extraction:</strong></p>
+                      <ReactMarkdown>{message.extraction}</ReactMarkdown>
                     </>
                   )}
                   {message.summary && (
                     <>
-                      <p><strong>Summary:</strong> <ReactMarkdown>{message.summary}</ReactMarkdown></p>
-                      <br />
+                      <p className="mt-2"><strong>Summary:</strong> <ReactMarkdown>{message.summary}</ReactMarkdown></p>
                     </>
                   )}
                 </div>
               </div>
             </div>
           ))}
-          {botTyping && <LoadingIndicator />}
+          {botTyping && <Loader />}
         </div>
-        <div className="flex items-center relative shadow-lg rounded-lg">
+        <div className="flex items-center relative shadow-lg rounded-lg mt-4">
           <textarea
             value={userMessage}
             onChange={(e) => setUserMessage(e.target.value)}

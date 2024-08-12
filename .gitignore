@@ -9,10 +9,11 @@
 /build
 /backend/venv
 /backend/uploads
+/backend/contract
 /backend/.chroma
 /backend/__pycache__
-/uploads
-/.chroma
+
+backend/.chroma
 
 # misc
 .DS_Store

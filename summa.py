@@ -1,5 +1,7 @@
 import os
 import torch
+import json
+import asyncio
 from dotenv import load_dotenv
 from langchain.chains import RetrievalQA
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings
@@ -36,10 +38,11 @@ def init_llm():
         top_p=0.9,
     )
 
-    # Initialize the embeddings model
-    embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    # Initialize the embeddings model if not already initialized
+    if embeddings is None:
+        embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-def process_document(document_path):
+async def process_document(document_path):
     global conversation_retrieval_chain
 
     persist_directory = "./contract"
@@ -52,7 +55,7 @@ def process_document(document_path):
     else:
         # Process the documents and create a new vector store
         loader = PyPDFLoader(document_path)
-        documents = loader.load()
+        documents = await loader.load_async()
 
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=64)
         texts = text_splitter.split_documents(documents)
@@ -76,7 +79,7 @@ def process_document(document_path):
         input_key="question"
     )
 
-def process_prompt(prompt):
+async def process_prompt(prompt):
     global conversation_retrieval_chain
     global chat_history
 
@@ -88,29 +91,29 @@ def process_prompt(prompt):
     sources = output["source_documents"]
     
     extraction = "\n".join([source.page_content for source in sources])
-    print(extraction)
-    summary = generate_summary(extraction, prompt)
+    summary = await generate_summary(extraction, prompt)
 
     chat_history.append((prompt, answer))
 
     return {
         "Question": prompt,
-        "Reference": generate_reference_clause(extraction),
+        "Reference": await generate_reference_clause(extraction),
         "Extraction": extraction,
         "Summary": summary
     }
 
-def generate_summary(extraction, prompt):
+async def generate_summary(extraction, prompt):
     summary_prompt = (
         f"Based on the following extraction and the question, provide a detailed summary if the question is available in the pdf else tell:\n\n"
         f"Extraction:\n{extraction}\n\n"
         f"Question:\n{prompt}\n\n"
         f"Summary:"
     )
-    response = llm_hub.generate(prompts=[summary_prompt])
+    response = await llm_hub.generate_async(prompts=[summary_prompt])
 
     generated_text = response.generations[0][0].text if response and response.generations else "Summary not available."
     return generated_text.strip()
+
 
 index = [
     'Meaning of Terms',
@@ -267,7 +270,7 @@ index = [
     'Annexure-XVI Certification by Arbitrators appointed under Clause 63 & 64 of Indian Railways General Conditions of Contract'
 ]
 
-def generate_reference_clause(extraction):
+async def generate_reference_clause(extraction):
     matching_prompt = (
         f"Identify and return the most relevant heading and name it as Heading and then from the following index list that present in the content in the given text. The heading should be selected based on the presence of whole heading from the index that is present in the extraction Text. If the exact heading isn't found, pick the closest match based on the content fron th Index. If there is a subheading above the given extraction name it as a subheading and then, mention it appropriately from the Index, but if no subheading is relevant, leave the subheading blank.\n\n"
         f"Index:\n{', '.join(index)}\n\n"
@@ -275,16 +278,19 @@ def generate_reference_clause(extraction):
         f"Relevant Heading:"
     )
     
-    response = llm_hub.generate(prompts=[matching_prompt])
+    response = await llm_hub.generate_async(prompts=[matching_prompt])
     matching_term = response.generations[0][0].text.strip() if response and response.generations else "Reference not found in predefined terms"
 
     return matching_term
 
+async def main():
+    init_llm()
 
-init_llm()
+    # Uncomment the following lines to test the code
+    # await process_document_async('./GCC_July_2020.pdf')
+    # prompt = "What is the role of the GCC in the global economy?"
+    # result = await process_prompt(prompt)
+    # print(result)
 
-# Uncomment the following lines to test the code
-# process_document('./GCC_July_2020.pdf')
-# prompt = "What is the role of the GCC in the global economy?"
-# result = process_prompt(prompt)
-# print(result)
+if __name__ == "__main__":
+    asyncio.run(main())

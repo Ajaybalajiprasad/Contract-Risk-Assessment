@@ -9,3 +9,4 @@ python-dotenv
 InstructorEmbedding
 pyproject-toml
 python-multipart
+uvicorn

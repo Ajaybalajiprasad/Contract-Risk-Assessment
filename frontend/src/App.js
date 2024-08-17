@@ -1,16 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import 'tailwindcss/tailwind.css';
-import { UploadIcon, SendIcon, MicIcon, Avatar, Button } from './ui/SvgIcons';
+import { UploadIcon, SendIcon, MicIcon, Avatar, Button, Loader } from './ui/SvgIcons';
 import ReactMarkdown from 'react-markdown';
-
-const Loader = () => (
-  <div className="flex justify-center items-center space-x-2 mt-2">
-    <div className="w-2.5 h-2.5 bg-gray-600 rounded-full animate-pulse"></div>
-    <div className="w-2.5 h-2.5 bg-gray-600 rounded-full animate-pulse delay-200"></div>
-    <div className="w-2.5 h-2.5 bg-gray-600 rounded-full animate-pulse delay-400"></div>
-  </div>
-);
 
 const App = () => {
   const [file, setFile] = useState(null);
@@ -23,31 +15,7 @@ const App = () => {
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window) {
-      const speechRecognition = new window.webkitSpeechRecognition();
-      speechRecognition.continuous = false;
-      speechRecognition.interimResults = false;
-      speechRecognition.lang = 'en-US';
-
-      speechRecognition.onstart = () => setListening(true);
-      speechRecognition.onend = () => setListening(false);
-      speechRecognition.onresult = (event) => {
-        const speechToText = event.results[0][0].transcript;
-        setUserMessage(speechToText);
-        handleSendMessage(speechToText);
-      };
-      speechRecognition.onerror = (event) => {
-        console.error('Speech recognition error', event);
-        alert('Speech recognition error occurred. Please try again.');
-      };
-
-      setRecognition(speechRecognition);
-    } else {
-      alert('Speech recognition not supported in this browser');
-    }
-  }, []);
-
-  useEffect(() => {
+    
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
@@ -121,6 +89,31 @@ const App = () => {
     }
   }, [userMessage]);
 
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window) {
+      const speechRecognition = new window.webkitSpeechRecognition();
+      speechRecognition.continuous = false;
+      speechRecognition.interimResults = false;
+      speechRecognition.lang = 'en-US';
+
+      speechRecognition.onstart = () => setListening(true);
+      speechRecognition.onend = () => setListening(false);
+      speechRecognition.onresult = (event) => {
+        const speechToText = event.results[0][0].transcript;
+        setUserMessage(speechToText);
+        handleSendMessage(speechToText);
+      };
+      speechRecognition.onerror = (event) => {
+        console.error('Speech recognition error', event);
+        alert('Speech recognition error occurred. Please try again.');
+      };
+
+      setRecognition(speechRecognition);
+    } else {
+      alert('Speech recognition not supported in this browser');
+    }
+  }, [handleSendMessage]);
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -170,7 +163,7 @@ const App = () => {
               />
               <div
                 className={`ml-3 mr-3 p-3 rounded-lg ${
-                  message.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+                  message.sender === 'user' ? 'bg-blue-200 text-black' : 'bg-gray-200'
                 } max-w-[60%] break-words shadow-md`}
               >
                 <strong>{message.sender === 'user' ? 'You' : 'Bot'}: </strong>

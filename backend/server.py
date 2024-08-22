@@ -79,7 +79,6 @@ async def process_document_route(file: UploadFile = File(...)):
         logger.error(f"Error saving or processing document: {e}")
         raise HTTPException(status_code=500, detail="There was an error processing your document.")
 
-# Run the FastAPI app using Uvicorn
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug", reload=True)

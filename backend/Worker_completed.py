@@ -23,49 +23,28 @@ embeddings = None
 def init_llm():
     global llm_hub, embeddings
 
-    # Set the Hugging Face API token
     os.environ["HUGGINGFACEHUB_TOKEN"] = os.getenv('HUGGING_FACE_TOKEN')
 
-    # Initialize the language model
-    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     llm_hub = HuggingFaceEndpoint(
-        repo_id=model_id,
+        repo_id="mistralai/Mistral-7B-Instruct-v0.3",
         task="text-generation",
         max_length=2000,
         temperature=0.4,
         top_p=0.9,
     )
 
-    # Initialize the embeddings model
     embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 def process_document(document_path):
     global conversation_retrieval_chain
 
-    persist_directory = "./contract"
+    loader = PyPDFLoader(document_path)
+    documents = loader.load()
 
-    # Check if the persistent directory already exists
-    if os.path.exists(persist_directory):
-        # Load the existing Chroma vector store from the directory
-        db = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
-        print("Loaded existing Chroma vector store from the directory.")
-    else:
-        # Process the documents and create a new vector store
-        loader = PyPDFLoader(document_path)
-        documents = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=64)
+    texts = text_splitter.split_documents(documents)
 
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=64)
-        texts = text_splitter.split_documents(documents)
-
-        db = Chroma.from_documents(
-            documents=texts,
-            embedding=embeddings,
-            persist_directory=persist_directory
-        )
-        db.persist()
-        print("Created and persisted new Chroma vector store.")
-
-    # Create the retriever from the Chroma vector store
+    db = Chroma.from_documents(documents=texts, embedding=embeddings)
     retriever = db.as_retriever(search_type="similarity", search_kwargs={'k': 2})
 
     conversation_retrieval_chain = RetrievalQA.from_chain_type(
@@ -77,18 +56,16 @@ def process_document(document_path):
     )
 
 def process_prompt(prompt):
-    global conversation_retrieval_chain
-    global chat_history
+    global conversation_retrieval_chain, chat_history
 
     if conversation_retrieval_chain is None:
-        raise ValueError("The document must be processed before querying.")
+        raise ValueError("Document must be processed before querying.")
 
     output = conversation_retrieval_chain({"question": prompt, "chat_history": chat_history})
     answer = output["result"]
     sources = output["source_documents"]
-    
+
     extraction = "\n".join([source.page_content for source in sources])
-    print(extraction)
     summary = generate_summary(extraction, prompt)
 
     chat_history.append((prompt, answer))
@@ -102,26 +79,23 @@ def process_prompt(prompt):
 
 def generate_summary(extraction, prompt):
     summary_prompt = (
-        f"Based on the following extraction and the question, provide a detailed summary if the question is available in the pdf else tell:\n\n"
+        f"Based on the following extraction and the question, provide a detailed summary if the question is available in the PDF, otherwise indicate unavailability:\n\n"
         f"Extraction:\n{extraction}\n\n"
         f"Question:\n{prompt}\n\n"
         f"Summary:"
     )
     response = llm_hub.generate(prompts=[summary_prompt])
-
     generated_text = response.generations[0][0].text if response and response.generations else "Summary not available."
     return generated_text.strip()
 
 def generate_reference_clause(extraction):
     matching_prompt = (
-        f"Identify and return the most relevant heading and name it as Heading. The heading should be selected based on the presence of a line that starts with either a number, a Roman numeral, or a newline character and ends with a colon, or starts and ends with two newline characters.\n\n"
+        f"Identify and return the most relevant heading based on the following text:\n\n"
         f"Text:\n{extraction}\n\n"
         f"Relevant Heading:"
     )
-    
     response = llm_hub.generate(prompts=[matching_prompt])
-    matching_term = response.generations[0][0].text.strip() if response and response.generations else "Reference not found in predefined terms"
-
+    matching_term = response.generations[0][0].text.strip() if response and response.generations else "Reference not found."
     return f"Heading: {matching_term}"
 
 # Initialize the LLM and embeddings

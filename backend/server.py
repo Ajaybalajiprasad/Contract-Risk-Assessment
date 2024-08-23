@@ -2,8 +2,10 @@ import logging
 import os
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
 import Worker_completed as worker  # Import the worker module
 
 # Initialize FastAPI app and CORS
@@ -24,6 +26,13 @@ logger = logging.getLogger(__name__)
 # Ensure the uploads directory exists
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+templates = Jinja2Templates(directory="/backend/templates")
+
+# Define the route for the index page
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 # Define the route for processing messages
 @app.post("/process-message")

@@ -90,7 +90,7 @@ def generate_summary(extraction, prompt):
 
 def generate_reference_clause(extraction):
     matching_prompt = (
-        f"Identify and return the most relevant heading based on the following text:\n\n"
+        f"Identify and return the most relevant heading and name it as Heading. The heading should be selected based on the presence of a line that starts with either a number, a Roman numeral, or a newline character and ends with a colon, or starts and ends with two newline characters.\n\n"
         f"Text:\n{extraction}\n\n"
         f"Relevant Heading:"
     )

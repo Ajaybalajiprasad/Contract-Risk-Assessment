@@ -1,13 +1,9 @@
 import logging
 import os
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-import time
-import random
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.templating import Jinja2Templates
-from starlette.requests import Request
 import Worker_completed as worker  # Import the worker module
 
 # Initialize FastAPI app and CORS
@@ -28,13 +24,6 @@ logger = logging.getLogger(__name__)
 # Ensure the uploads directory exists
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-templates = Jinja2Templates(directory="/backend/templates")
-
-# Define the route for the index page
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
 
 # Define the route for processing messages
 @app.post("/process-message")
@@ -68,12 +57,8 @@ async def process_document_route(file: UploadFile = File(...)):
 
         worker.process_document(file_path)  # Process the document using the worker module
 
-        estimated_time = random.randint(5, 15)  # Simulate document processing time
-        time.sleep(estimated_time)
-
         return JSONResponse(content={
             "botResponse": "Thank you for providing your PDF document. I have analyzed it, so now you can ask me any questions regarding it!",
-            "estimated_time": estimated_time
         }, status_code=200)
     except Exception as e:
         logger.error(f"Error saving or processing document: {e}")

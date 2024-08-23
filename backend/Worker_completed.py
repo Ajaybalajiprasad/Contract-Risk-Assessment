@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from langchain.chains import RetrievalQA
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
-# from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_community.vectorstores import Chroma
 from langchain_community.llms import HuggingFaceEndpoint
@@ -42,7 +41,6 @@ def process_document(document_path):
     loader = PyPDFLoader(document_path)
     documents = loader.load()
 
-    # text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=64)
     text_splitter = SemanticChunker(embeddings)
     texts = text_splitter.split_documents(documents)
 

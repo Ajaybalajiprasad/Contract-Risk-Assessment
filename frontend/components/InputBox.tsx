@@ -30,8 +30,10 @@ const InputBox: React.FC<InputBoxProps> = ({
       <div className="absolute inset-y-0 right-0 flex items-center pr-2">
         <button
           onClick={handleSendMessage}
-          className="ml-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-full inline-flex items-center"
-        >
+          disabled={!userMessage.trim()}
+          className={`ml-4 px-4 py-2 rounded-lg text-white ${
+          userMessage.trim() ? 'bg-gray-900 hover:bg-gray-600' : 'bg-gray-400 cursor-not-allowed'
+        }`}        >
           Send
           <SendIcon className="w-5 h-5 ml-2" />
         </button>

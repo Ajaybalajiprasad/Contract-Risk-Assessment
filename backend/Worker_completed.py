@@ -26,7 +26,7 @@ def init_llm():
     os.environ["HUGGINGFACEHUB_TOKEN"] = os.getenv('HUGGING_FACE_TOKEN')
 
     llm_hub = HuggingFaceEndpoint(
-        repo_id="mistralai/Mistral-7B-Instruct-v0.3",
+        repo_id="mistralai/Mixtral-8x7B-Instruct-v0.1",
         task="text-generation",
         max_length=2000,
         temperature=0.4,
@@ -38,13 +38,23 @@ def init_llm():
 def process_document(document_path):
     global conversation_retrieval_chain
 
-    loader = PyPDFLoader(document_path)
-    documents = loader.load()
+    persist_directory = "./contract"
 
-    text_splitter = SemanticChunker(embeddings)
-    texts = text_splitter.split_documents(documents)
+    if os.path.exists(persist_directory):
+        db = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
+        print("Loaded existing Chroma vector store from the directory.")
+    else: 
+        loader = PyPDFLoader(document_path)
+        documents = loader.load()
 
-    db = Chroma.from_documents(documents=texts, embedding=embeddings)
+        text_splitter = SemanticChunker(embeddings)
+        texts = text_splitter.split_documents(documents)
+
+        db = Chroma.from_documents(documents=texts, embedding=embeddings, persist_directory=persist_directory)
+
+        db.persist()
+        print("Created and persisted new Chroma vector store.")
+        
     retriever = db.as_retriever(search_type="similarity", search_kwargs={'k': 2})
 
     conversation_retrieval_chain = RetrievalQA.from_chain_type(

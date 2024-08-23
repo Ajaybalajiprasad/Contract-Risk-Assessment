@@ -78,7 +78,7 @@ const App: React.FC = () => {
   }, [file]);
 
   const handleSendMessage = useCallback(async (message?: string) => {
-    const finalMessage = String(message || userMessage).trim();
+    const finalMessage = String(userMessage || message).trim();
     if (!finalMessage) {
       alert('Please enter a message');
       return;

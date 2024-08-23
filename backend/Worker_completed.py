@@ -35,16 +35,16 @@ class Worker:
         self.llm_hub = ChatOpenAI(temperature=0.4,model="gpt-4o",)
 
         self.embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-#         self.embeddings = OpenAIEmbeddings(
-#     model="text-embedding-3-large"
-#     # With the `text-embedding-3` class
-#     # of models, you can specify the size
-#     # of the embeddings you want returned.
-#     # dimensions=1024
-# )
+          # self.embeddings = OpenAIEmbeddings(
+          # model="text-embedding-3-large"
+          # With the `text-embedding-3` class
+          # of models, you can specify the size
+          # of the embeddings you want returned.
+          # dimensions=1024
+          # )
        
     def process_document(self,document_path):
-        persist_directory = "./.chroma"
+        persist_directory = "./contract"
 
         if os.path.exists(persist_directory):
             db = Chroma(persist_directory=persist_directory, embedding_function=self.embeddings)

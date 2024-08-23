@@ -638,6 +638,9 @@ video {
 .rounded-lg {
   border-radius: 0.5rem;
 }
+.rounded {
+  border-radius: 0.25rem;
+}
 .border {
   border-width: 1px;
 }

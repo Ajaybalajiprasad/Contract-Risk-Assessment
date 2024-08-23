@@ -97,7 +97,7 @@ class Worker:
             f"Based on the following extraction and the question, provide a detailed summary if the question is available in the PDF, otherwise indicate unavailability:\n\n"
             f"Extraction:\n{extraction}\n\n"
             f"Question:\n{prompt}\n\n"
-            f"Summary:"
+            f"Summary (in Markdown):" 
         )
         response = self.llm_hub.generate([summary_prompt])
         generated_text = response.generations[0][0].text if response and response.generations else "Summary not available."

@@ -1,4 +1,4 @@
-fastapi==0.111.1
+fastapi==0.85.1
 torch==2.4.0
 langchain-core==0.2.24
 langchain-community==0.2.10

@@ -6,11 +6,11 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
-import Worker_completed as worker  # Import the worker module
-
+import Worker_completed as wk  # Import this for openai
+#import huggingface_worker as wk  # Import this for huggingface
 # Initialize FastAPI app and CORS
 app = FastAPI()
-
+worker = wk.Worker()
 origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
@@ -42,12 +42,12 @@ async def process_message_route(userMessage: str = Form(...)):
     if not userMessage:
         raise HTTPException(status_code=400, detail="Please provide a message to process.")
 
-    try:
-        bot_response = worker.process_prompt(userMessage)  # Process the user's message using the worker module
-        return JSONResponse(content={"botResponse": bot_response}, status_code=200)
-    except Exception as e:
-        logger.error(f"Error processing message: {e}")
-        raise HTTPException(status_code=500, detail="There was an error processing your message.")
+    #try:
+    bot_response = worker.process_prompt(userMessage)  # Process the user's message using the worker module
+    return JSONResponse(content={"botResponse": bot_response}, status_code=200)
+    #except Exception as e:
+    #    logger.error(f"Error processing message: {e}")
+    #    raise HTTPException(status_code=500, detail="There was an error processing your message.")
 
 # Define the route for processing documents
 @app.post("/process-document")

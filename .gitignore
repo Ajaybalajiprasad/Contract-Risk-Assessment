@@ -2,12 +2,13 @@
 
 # dependencies
 /frontend/node_modules
-
+/frontend/.next
 # testing
 /coverage
 # production
 /build
 /backend/venv
+/env/
 /backend/uploads
 /backend/contract
 /backend/.chroma

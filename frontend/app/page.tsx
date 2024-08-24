@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [botTyping, setBotTyping] = useState<boolean>(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [listening, setListening] = useState<boolean>(false);
+  const [model, setModel] = useState<string>('gpt-4-0'); // Add state for model selection
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -149,11 +150,32 @@ const App: React.FC = () => {
     }
   };
 
+  const handleModelChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedModel = e.target.value;
+    setModel(selectedModel);
+
+    try {
+      await axios.post('http://localhost:8000/set-model', new URLSearchParams({ model_name: selectedModel }), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      alert(`Model set to ${selectedModel}`);
+    } catch (error) {
+      console.error('Error setting model:', error);
+      alert('Failed to set model. Please try again.');
+    }
+  };
+
   return (
     <div className="h-screen w-full flex flex-col justify-between items-center bg-gray-100 p-2">
       <div className="w-full h-full bg-white rounded-lg shadow-lg p-6 flex flex-col">
         <header className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gray-700">PDF Chatbot</h1>
+          <select value={model} onChange={handleModelChange} className="border border-gray-300 rounded p-2">
+            <option value="gpt-4-0">GPT-4-0</option>
+            <option value="mistral">Mistral</option>
+          </select>
         </header>
         <FileUploader handleFileChange={handleFileChange} handleUpload={handleUpload} />
         <ChatBox chatMessages={chatMessages} botTyping={botTyping} chatContainerRef={chatContainerRef} />

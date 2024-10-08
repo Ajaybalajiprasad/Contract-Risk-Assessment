@@ -7,7 +7,7 @@
 /coverage
 # production
 /build
-/backend/venv
+/backend/sharan
 /env/
 /backend/uploads
 /backend/contract

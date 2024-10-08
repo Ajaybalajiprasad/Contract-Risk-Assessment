@@ -10,3 +10,6 @@ InstructorEmbedding==1.0.1
 pyproject-toml==0.0.10
 python-multipart==0.0.9
 uvicorn==0.30.3
+langchain_experimental
+faiss-cpu
+pymupdf
